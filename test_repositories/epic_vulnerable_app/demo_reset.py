@@ -9,7 +9,7 @@ if sys.platform == 'win32':
     sys.stderr.reconfigure(encoding='utf-8')
 
 # Path to the memory file
-YATA_ROOT = Path("D:/HackathonProjects/yata")
+YATA_ROOT = Path(__file__).resolve().parent.parent.parent
 MEMORY_DIR = YATA_ROOT / ".yata" / "memory"
 REPO_MEMORY = MEMORY_DIR / "epic_vulnerable_app"
 
