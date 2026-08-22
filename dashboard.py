@@ -24,6 +24,24 @@ app = Flask(__name__,
             static_url_path='/assets',
             template_folder=str(TEMPLATE_DIR))
 
+import keyboard
+
+@app.post('/api/action')
+def handle_action():
+    action = request.json.get('action')
+    if action == 'continue':
+        try:
+            import pygetwindow as gw
+            for w in gw.getWindowsWithTitle(''):
+                if 'pwsh' in w.title.lower() or 'powershell' in w.title.lower() or 'cmd' in w.title.lower() or 'yata' in w.title.lower() or 'window' in w.title.lower() or 'epic_vulnerable_app' in w.title.lower() or 'hackathon' in w.title.lower():
+                    if w.visible:
+                        w.activate()
+                        break
+        except Exception as e:
+            print('Focus failed:', e)
+        keyboard.send('enter')
+    return jsonify({'status': 'ok'})
+
 @app.route('/')
 def index():
     return render_template('live.html')

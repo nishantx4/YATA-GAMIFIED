@@ -876,7 +876,7 @@
                 const isP = v.status === 'Patched';
                 item.style.borderLeftColor = isP ? '#22c55e' : '#ef4444';
                 item.innerHTML = '<div style="color:' + (isP ? '#86efac' : '#fca5a5') + '; font-weight:bold;">' + (isP ? '✓' : '⚔') + ' ' + v.title + '</div>' +
-                    '<div style="color:#a1947c; font-size:6px;">Severity: ' + v.severity + ' | Bounty: +' + v.xp + ' XP</div>';
+                    '<div style="color:#a1947c; font-size:6px;">Severity: ' + v.severity + ' | Bounty: +' + v.xp + ' XP</div>' + (isP ? '' : ' <button onclick=\"fetch(''/api/action'', {method:''POST'', headers:{''Content-Type'':''application/json''}, body:JSON.stringify({action:''continue''})}); this.innerText=''APPROVING...''; this.style.opacity=''0.5'';\" style=\"margin-top:6px; cursor:pointer; background:#ca8a04; color:#fff; border:1px solid #854d0e; padding:3px 6px; font-family:''Press Start 2P'', monospace; font-size:5px; border-radius:2px; display:block; width:100%;\">ADVANCE TERMINAL STEP</button>');
                 box.appendChild(item);
             });
         }
@@ -891,7 +891,7 @@
                     const isP = v.status === 'Patched';
                     card.innerHTML = '<div class="decree-h"><span>' + v.title + '</span><span>[' + v.severity + ']</span></div>' +
                         '<div class="decree-b">By guild decree, a vulnerability in the codebase AST has been neutralized.</div>' +
-                        '<div class="decree-f ' + (isP ? 'patched' : '') + '">' + (isP ? 'FORTIFIED & REPRODUCED' : 'UNDER ACTIVE HEALING') + '</div>';
+                        '<div class="decree-f ' + (isP ? 'patched' : '') + '">' + (isP ? 'FORTIFIED & REPRODUCED' : ('UNDER ACTIVE HEALING' + ' <button onclick=\"fetch(''/api/action'', {method:''POST'', headers:{''Content-Type'':''application/json''}, body:JSON.stringify({action:''continue''})}); this.innerText=''APPROVING...''; this.style.opacity=''0.5''; event.stopPropagation();\" style=\"margin-left:10px; cursor:pointer; background:#ca8a04; color:#fff; border:2px solid #854d0e; padding:4px 8px; font-family:''Press Start 2P'', monospace; font-size:6px; border-radius:2px;\">APPROVE PATCH VIA TERMINAL</button>')) + '</div>';
                     list.appendChild(card);
                 });
             }
