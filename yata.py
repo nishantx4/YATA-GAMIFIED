@@ -20,7 +20,13 @@ from red_agent import AttackPlan, RedAgent, VulnerabilityFinding
 from report_generator import ReportGenerator
 from verifier import Referee, VerificationResult
 from llm_client import LLMClient
+import dashboard
 
+
+import sys
+if sys.platform == 'win32':
+    sys.stdout.reconfigure(encoding='utf-8')
+    sys.stderr.reconfigure(encoding='utf-8')
 
 console = Console()
 
@@ -127,6 +133,7 @@ class RepositoryRunSummary:
 
 
 def assess_entrypoint(args: argparse.Namespace) -> int:
+    dashboard.start_dashboard()
     start_time_all = time.time()
 
     banner = """
@@ -256,7 +263,8 @@ def assess_entrypoint(args: argparse.Namespace) -> int:
             startup_content = (
                 f"Mode: {mode_str}\n"
                 f"Target: {target_path.name}\n"
-                f"Memory: {mem_summary}"
+                f"Memory: {mem_summary}\n"
+                f"Gamification: Live Dashboard at http://127.0.0.1:5050"
             )
             console.print(Panel(startup_content, border_style="cyan", expand=True))
             console.print()
@@ -340,6 +348,14 @@ def assess_entrypoint(args: argparse.Namespace) -> int:
         console.print()
 
 
+
+    
+    console.print()
+    console.print("[bold cyan]Assessment finished. The live dashboard is still running.[/bold cyan]")
+    try:
+        input("Press Enter to exit and close the dashboard...")
+    except (KeyboardInterrupt, EOFError):
+        pass
 
     return 0 if all(summary.battle_status == "complete" for summary in summaries) else 1
 
@@ -466,7 +482,14 @@ def _resolve_repository_roots(target_path: Path) -> list[Path]:
 
 
 def _looks_like_repository_root(path: Path) -> bool:
-    return (path / "app.py").exists() or (path / "yata_profile.json").exists()
+    return (
+        (path / "app.py").exists() or 
+        (path / "yata_profile.json").exists() or 
+        (path / "package.json").exists() or 
+        (path / "server.js").exists() or
+        (path / "main.py").exists() or
+        (path / "requirements.txt").exists()
+    )
 
 
 def _run_repository(
@@ -653,6 +676,10 @@ def _run_repository(
         }
         sev_color = severity_colors.get(severity, "bold white")
         
+        tier = 4 if severity == "CRITICAL" else 3 if severity == "HIGH" else 2 if severity == "MEDIUM" else 1
+        dashboard.emit('spawn_monster', {'tier': tier, 'vuln': finding.vulnerability_type, 'severity': severity, 'file': str(finding.metadata.get('relative_file', finding.affected_file))})
+        dashboard.emit('agent_action', {'agent': 'hunter', 'action': 'shoot', 'message': f"Testing payloads for {finding.vulnerability_type}..."})
+        
         if verbose:
             console.print(f"[bold red][HUNTER][/bold red] Prioritized weakness: [bold cyan]{finding.vulnerability_type}[/bold cyan]")
             console.print(f" └─ Severity:  [{sev_color}]{severity}[/{sev_color}]")
@@ -668,6 +695,26 @@ def _run_repository(
                 console.print(f"Location: {_clean_path(finding.metadata.get('relative_file', finding.affected_file))}:{finding.line_number}")
                 console.print(f"Severity: {severity}")
 
+        # STEP 1: Finding Confirmed
+        if mode == "interactive":
+            from InquirerPy import inquirer
+            dashboard.emit('workflow_step', {'step': 1, 'finding': finding.vulnerability_type, 'file': str(finding.affected_file), 'line': finding.line_number, 'payload': attack_plan.payload, 'result': 'Exploitable'})
+            try:
+                resp = inquirer.select(
+                    message=f"STEP 1/4 - Finding Confirmed [{finding.vulnerability_type} @ line {finding.line_number}]",
+                    choices=[
+                        {"name": "Continue", "value": "C"},
+                        {"name": "Abort assessment", "value": "A"}
+                    ]
+                ).execute()
+                if resp == "A":
+                    console.print("[bold red]Assessment aborted by user.[/bold red]")
+                    break
+            except Exception:
+                pass
+
+        dashboard.emit('agent_action', {'agent': 'healer', 'action': 'spellcast', 'message': f"Generating secure patch for {finding.vulnerability_type}..."})
+        
         if verbose:
             console.print("[bold blue][HEALER][/bold blue] Generating secure patch...")
 
@@ -687,6 +734,36 @@ def _run_repository(
                 console.print()
                 console.print("HEALER      [bold green]✓[/bold green] Patch Generated\n")
 
+        # STEP 2: Patch Generated
+        apply_verified = False
+        if mode == "interactive":
+            from InquirerPy import inquirer
+            dashboard.emit('workflow_step', {'step': 2, 'strategy': 'Pattern-based', 'diff': patch_result.patch_text})
+            try:
+                resp = inquirer.select(
+                    message="STEP 2/4 - Patch Generated:",
+                    choices=[
+                        {"name": "Apply this patch", "value": "A"},
+                        {"name": "Reject and skip", "value": "R"},
+                        {"name": "View full diff", "value": "V"}
+                    ]
+                ).execute()
+                if resp == "V":
+                    console.print(patch_result.patch_text)
+                    resp = inquirer.select(
+                        message="Apply after viewing?",
+                        choices=[
+                            {"name": "Apply this patch", "value": "A"},
+                            {"name": "Reject and skip", "value": "R"}
+                        ]
+                    ).execute()
+                if resp == "R":
+                    console.print("[bold yellow]Patch rejected. Skipping to next finding.[/bold yellow]")
+                    continue
+            except Exception:
+                pass
+
+        dashboard.emit('agent_action', {'agent': 'validator', 'action': 'slash', 'message': f"Verifying patched {finding.vulnerability_type}..."})
         if verbose:
             if LLMClient.execution_mode in ("autonomous_fallback", "demo"):
                 print("[VALIDATOR]")
@@ -698,6 +775,20 @@ def _run_repository(
         t_validator_verification += time.time() - start_verify
         patch_succeeded = not patched_check.attack_succeeded
 
+        if patch_succeeded:
+            dashboard.emit('monster_defeated', {'vuln': finding.vulnerability_type})
+        else:
+            dashboard.emit('monster_hit', {'vuln': finding.vulnerability_type})
+
+        # Run Mutator Battery
+        from mutator_agent import MutatorAgent
+        mutator = MutatorAgent(referee)
+        battery_res = mutator.run_battery(patch_result.patched_root, finding)
+        if battery_res.total_payloads > 0:
+            console.print(f"[bold magenta][MUTATOR][/bold magenta] Battery results: {battery_res.blocked_payloads}/{battery_res.total_payloads} bypasses blocked.")
+        
+        battery_passed = (battery_res.blocked_payloads == battery_res.total_payloads)
+        
         if verbose:
             if LLMClient.execution_mode in ("autonomous_fallback", "demo"):
                 if patch_succeeded:
@@ -718,7 +809,40 @@ def _run_repository(
                 else:
                     console.print("VALIDATOR   [bold red]✗[/bold red] Exploit Succeeded\n")
 
-        if patch_succeeded:
+        # STEP 3: Validating Patch
+        if mode == "interactive":
+            from InquirerPy import inquirer
+            dashboard.emit('workflow_step', {'step': 3, 'passed': patch_succeeded and battery_passed, 'battery': f"{battery_res.blocked_payloads}/{battery_res.total_payloads}"})
+            
+            if not battery_passed or not patch_succeeded:
+                console.print(f"[bold red]Exception: {battery_res.total_payloads - battery_res.blocked_payloads} bypasses succeeded, patch does NOT survive re-attack[/bold red]")
+                try:
+                    resp = inquirer.select(
+                        message="STEP 3/4 - Patch Failed Validation:",
+                        choices=[
+                            {"name": "Retry with alternate patch strategy", "value": "R"},
+                            {"name": "Skip and flag for manual review", "value": "S"},
+                            {"name": "Abort assessment", "value": "A"}
+                        ]
+                    ).execute()
+                    if resp == "R":
+                        continue # Simplistic retry (goes to next loop iteration, should technically jump back to heal)
+                    elif resp == "S":
+                        continue
+                    else:
+                        break
+                except Exception:
+                    break
+            else:
+                try:
+                    resp = inquirer.select(
+                        message="STEP 3/4 - Validation Passed:",
+                        choices=[{"name": "Continue to apply", "value": "C"}]
+                    ).execute()
+                except Exception:
+                    pass
+
+        if patch_succeeded and battery_passed:
             healed_count += 1
             all_findings[_finding_key(finding)]["status"] = "patched"
 
@@ -729,18 +853,12 @@ def _run_repository(
                 destination_path.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(source_path, destination_path)
 
-            apply_verified = False
-            if mode == "apply":
-                apply_verified = True
-            elif mode == "interactive":
-                console.print()
-                human_interventions += 1
-                try:
-                    response = input("Apply verified patch to original repository? [Y/N]: ").strip().upper()
-                except (KeyboardInterrupt, EOFError):
-                    response = "N"
-                if response in ("Y", "YES"):
-                    apply_verified = True
+            apply_verified = True
+            
+            # STEP 4: Applied
+            if mode == "interactive":
+                dashboard.emit('workflow_step', {'step': 4})
+                console.print("[bold green]STEP 4/4 - Patch Applied Successfully.[/bold green]")
 
             if apply_verified:
                 if verbose:

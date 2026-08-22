@@ -247,13 +247,26 @@ class Referee:
         return json.loads(profile_path.read_text(encoding="utf-8"))
 
     def _load_app_module(self, app_path: Path):
+        import sys
         unique_name = f"yata_target_{abs(hash(str(app_path.resolve())))}"
-        spec = importlib.util.spec_from_file_location(unique_name, app_path)
-        if spec is None or spec.loader is None:
-            raise RuntimeError(f"Unable to load app module from {app_path}")
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        return module
+        
+        # Add app_path parent to sys.path so it can resolve local imports like 'import database'
+        app_dir = str(app_path.parent.resolve())
+        added_to_path = False
+        if app_dir not in sys.path:
+            sys.path.insert(0, app_dir)
+            added_to_path = True
+            
+        try:
+            spec = importlib.util.spec_from_file_location(unique_name, app_path)
+            if spec is None or spec.loader is None:
+                raise RuntimeError(f"Unable to load app module from {app_path}")
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            return module
+        finally:
+            if added_to_path:
+                sys.path.remove(app_dir)
 
 
 Verifier = Referee

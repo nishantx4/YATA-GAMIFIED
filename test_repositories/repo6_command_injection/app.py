@@ -12,8 +12,8 @@ def create_app(db_path: str | None = None) -> Flask:
         host = request.form.get("host", "")
 
         result = subprocess.run(
-            f"ping {host}",
-            shell=True,
+            ["ping", host],
+            shell=False,
             capture_output=True,
             text=True
         )

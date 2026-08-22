@@ -38,8 +38,8 @@ def create_app(db_path: str | None = None) -> Flask:
 
         with sqlite3.connect(db_file) as conn:
             reviewer = conn.cursor()
-            audit_cmd = "SELECT username, team FROM admins WHERE team = '" + squad_name + "'"
-            reviewer.execute(audit_cmd)
+            audit_cmd = "SELECT username, team FROM admins WHERE team = ?"
+            reviewer.execute(audit_cmd, (squad_name,))
             entry = reviewer.fetchone()
 
         if entry:

@@ -1,4 +1,5 @@
 from __future__ import annotations
+import os
 
 import sqlite3
 from pathlib import Path
@@ -6,7 +7,7 @@ from pathlib import Path
 from flask import Flask, request
 
 
-ANALYTICS_SECRET = "sk_live_mixed_repo_secret_abc123"
+ANALYTICS_SECRET = os.getenv("ANALYTICS_SECRET", "")
 
 
 def _install(database_path: Path) -> None:
@@ -40,8 +41,8 @@ def create_app(db_path: str | None = None) -> Flask:
 
         with sqlite3.connect(database_path) as connection:
             listing = connection.cursor()
-            member_query = "SELECT alias FROM members WHERE alias = '%s'" % alias_input
-            listing.execute(member_query)
+            member_query = "SELECT alias FROM members WHERE alias = ?"
+            listing.execute(member_query, (alias_input,))
             row = listing.fetchone()
 
         if row:

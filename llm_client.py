@@ -80,7 +80,7 @@ def _update_status_progressively(stop_event: threading.Event, live: Live, prefix
 
 
 class LLMClient:
-    DEFAULT_MODEL = "qwen/qwen3.5-122b-a10b"
+    DEFAULT_MODEL = "meta/llama-3.1-8b-instruct"
     MODEL_FALLBACKS = {
         "qwen/qwen2.5-coder-32b-instruct": DEFAULT_MODEL,
         "qwen/qwen3-coder-480b-a35b-instruct": DEFAULT_MODEL,

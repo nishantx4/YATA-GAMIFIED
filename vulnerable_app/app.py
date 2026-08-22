@@ -40,8 +40,8 @@ def create_app(db_path: str | None = None) -> Flask:
 
         with sqlite3.connect(database_path) as conn:
             cursor = conn.cursor()
-            query = f"SELECT * FROM users WHERE username = '{username}' AND password = '{password}'"
-            cursor.execute(query)
+            query = "SELECT * FROM users WHERE username = ? AND password = ?"
+            cursor.execute(query, (username, password))
             row = cursor.fetchone()
 
         if row:

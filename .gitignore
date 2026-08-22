@@ -23,4 +23,7 @@ dist/
 *.db
 
 # Virtual environments
-.venv/
+.venv/juice-shop-master
+juice-shop-master.zip
+temp_check.js
+patch3.py
