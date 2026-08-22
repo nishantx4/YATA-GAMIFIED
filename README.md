@@ -1,406 +1,120 @@
-# YATA
+# YATA-GAMIFIED (Yet Another Threat Antagonist)
 
-### Yet Another Threat Antagonist
+> The Cybersecurity Ouroboros — Now Fully Gamified!
 
-> The Cybersecurity Ouroboros
+An autonomous security agent that attacks a codebase, heals the vulnerabilities it proves, attacks its own remediations, and learns from every assessment... **All visualized live in a retro 16-bit RPG dungeon!**
 
-An autonomous security agent that attacks a codebase, heals the vulnerabilities it proves, attacks its own remediations, and learns from every assessment.
-
-Most security tools stop at detection.
-
-YATA refuses to trust detection alone.
-
+Most security tools stop at detection. **YATA refuses to trust detection alone.**
 ***A vulnerability is not accepted until YATA successfully exploits it.***
-
 A patch is not accepted until YATA fails to break it.
 
 **Attack. Heal. Attack Again. Learn.**
 
 ---
 
-# Why YATA?
+## 🎮 The Gamification Engine (Round 2 Addition!)
 
-Traditional security workflows are fragmented.
+YATA isn't just a CLI anymore. We have built a complete, fully integrated **Canvas-based Gamification Engine** that visualizes the AI's internal state in real-time without breaking the core polling architecture!
 
-```text
-Scanner
-   ↓
-Find Vulnerability
-   ↓
-Developer Investigates
-   ↓
-Developer Creates Patch
-   ↓
-Developer Tests Patch
-   ↓
-Developer Validates Security
-```
-
-The remediation process remains largely manual.
-
-
-
-
-YATA automates the complete offensive-to-defensive cycle.
-
-```text
-Repository
-    ↓
-HUNTER attacks
-    ↓
-Exploit succeeds
-    ↓
-HEALER repairs
-    ↓
-VALIDATOR attacks again
-    ↓
-Patch survives
-    ↓
-LEARNER remembers
-```
-
-
-
-
-Every remediation must survive an attack from YATA's own offensive engine before it is accepted.
+### Features:
+- **RPG Village Map:** The target repository is visualized as a Dungeon town (Townhall, Vault, Market Stall, Houses, Strongbox).
+- **Demon Spawning:** As the `HUNTER` AI confirms vulnerabilities, different demons spawn on the afflicted buildings depending on the severity (Imps for Secrets, Hobgoblins for Command Injection, Big Demons for SQLi).
+- **Epic Combat:** When the `VALIDATOR` confirms a patch works, a magical dragon swoops in, incinerates the demon with a devastating attack animation, and fades out, restoring peace to the building!
+- **Interactive Parchment UI:** The 4-step Terminal approval workflow is mirrored perfectly onto a medieval parchment scroll in the game window.
+- **Notification Stacking:** Rapid-fire terminal logs are cleanly caught and stacked as center-screen Toast notifications.
 
 ---
 
-# Core Agents
+## 🤖 The Agents
 
-## HUNTER
-
-Offensive security agent.
-
-Responsibilities:
-
-* Build attack paths
-* Execute payloads
-* Prove exploitability
-* Confirm vulnerabilities
+1. **HUNTER (The Archer):** Scans the AST, builds attack paths, executes payloads, and confirms vulnerabilities.
+2. **HEALER (The Sage):** Analyzes the broken code and generates secure, functional patches.
+3. **VALIDATOR (The Knight):** Adversarial agent that takes the HEALER's patch and relentlessly tries to break it.
+4. **LEARNER (The Scholar):** Maintains persistent security memory for the repository.
+5. **MUTATOR:** **(New!)** A deterministic battery of known bypass techniques (e.g. `../../etc/passwd`, `' OR 1=1#`) that ensures the HEALER's patch isn't just a brittle regex, but a true structural fix!
 
 ---
 
-## HEALER
+## 🚀 Installation
 
-Defensive remediation agent.
+YATA is fully packaged and installable natively.
 
-Responsibilities:
-
-* Generate secure patches
-* Preserve functionality
-* Apply minimal changes
-* Produce validated fixes
-
----
-
-## VALIDATOR
-
-Adversarial validation agent.
-
-Responsibilities:
-
-* Re-run exploit chains
-* Attack generated patches
-* Verify exploit prevention
-* Confirm remediation success
-
----
-
-## LEARNER
-
-Repository memory agent.
-
-Responsibilities:
-
-* Track assessment history
-* Record vulnerability trends
-* Track patch success rates
-* Maintain repository knowledge
-
----
-
-# Supported Vulnerabilities
-
-| Vulnerability             | Exploit | Patch | Validate |
-| ------------------------- | ------- | ----- | -------- |
-| SQL Injection             | ✓       | ✓     | ✓        |
-| Hardcoded Secret Exposure | ✓       | ✓     | ✓        |
-| Command Injection         | ✓       | ✓     | ✓        |
-| Path Traversal            | ✓       | ✓     | ✓        |
-
----
-
-# Quick Start
-
-## Clone Repository
-
+### 1. Clone the Repository
 ```bash
-git clone https://github.com/aarshnomorecool/yata.git
-cd yata
+git clone https://github.com/nishantx4/YATA-GAMIFIED.git
+cd YATA-GAMIFIED
 ```
 
-## Create Virtual Environment
-
-### Windows PowerShell
-
+### 2. Create Virtual Environment
 ```powershell
+# Windows
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-```
 
-### Linux / macOS
-
-```bash
+# Linux / macOS
 python -m venv .venv
 source .venv/bin/activate
 ```
 
-## Install YATA
-
+### 3. Install YATA
 ```bash
 pip install -e .
 ```
 
-## Verify Installation
-
-```bash
-yata version
-```
-
-Expected:
-
-```text
-YATA v0.8.1
-```
+### 4. Configure AI (Crucial for patches!)
+Copy `.env.example` to `.env` and add your API Key so the Healer can write real patches!
+*(If no key is found, YATA enters "Autonomous Fallback Mode", applying weak dummy patches that are designed to fail the Mutator Battery!)*
 
 ---
 
-# First Assessment
+## 🎬 How to Run the Epic Demo
 
-Run the demo:
+We have included a massive, extremely vulnerable repository specifically built to showcase YATA's full capabilities and animations!
 
-```bash
-yata --demo
+### Step 1: Reset the Demo Environment
+Because YATA's **LEARNER** agent remembers fixed vulnerabilities, you need to wipe its memory and reset the codebase before every demo run.
+```powershell
+cd test_repositories/epic_vulnerable_app
+python demo_reset.py
+```
+*This instantly reverts all files and wipes YATA's memory for a fresh start.*
+
+### Step 2: Launch the Assessment
+Run YATA in interactive mode:
+```powershell
+yata assess . --interactive
 ```
 
-Run against a repository:
+### Step 3: Enjoy the Show
+1. Open your browser to the Live Dashboard at `http://127.0.0.1:5050`
+2. Watch the Dungeon map render.
+3. Keep an eye out for Demons spawning on buildings as the Hunter finds vulnerabilities!
+4. **Respond to the prompts in the Terminal!** (Continue -> Apply Patch -> Continue).
+5. Watch the Parchment overlay in the game mirror your terminal choices.
+6. Watch the Dragon incinerate the demons when patches pass the Mutator Battery!
 
-```bash
-yata assess test_repositories/repo5_mixed --safe
-```
+*(P.S. There is an Easter Egg hidden in the bottom left corner of the map!)*
 
 ---
 
-# Execution Modes
-
-## SAFE
-
-```bash
-yata assess <repository> --safe
-```
-
-Creates validated patches without modifying original files.
-
-Recommended mode.
-
----
-
-## APPLY
-
-```bash
-yata assess <repository> --apply
-```
-
-Automatically applies validated remediations directly to the target repository.
-
----
-
-## INTERACTIVE
-
-```bash
-yata assess <repository> --interactive
-```
-
-Requests user approval before patch application.
-
----
-
-# Native CLI Commands
-
-```bash
-yata help
-```
-
-Show available commands.
-
-```bash
-yata assess <repository> --safe
-```
-
-Assess repository.
-
-```bash
-yata discover <path>
-```
-
-Discover repositories.
-
-```bash
-yata memory <repository>
-```
-
-View repository memory.
-
-```bash
-yata history <repository>
-```
-
-View assessment history.
-
-```bash
-yata report <repository>
-```
-
-Open latest report.
-
-```bash
-yata status
-```
-
-View platform statistics.
-
-```bash
-yata version
-```
-
-Display version information.
-
----
-
-# Repository Memory
-
-Every repository develops persistent security knowledge.
-
-Stored under:
-
-```text
-.yata/memory/<repository>/memory.json
-```
-
-Tracked information:
-
-* Assessment history
-* Security scores
-* Vulnerability trends
-* Patch success rates
-* Repository statistics
-
-YATA does not simply assess repositories.
-
-It remembers them.
-
----
-
-# Reports
-
-YATA generates:
-
-### Terminal Reports
-
-Rich CLI summaries.
-
-### HTML Reports
-
-Containing:
-
-* Executive Summary
-* Security Score Evolution
-* Proven Exploits
-* Generated Patches
-* Validation Results
-* Repository History
-* Agent Metrics
-
----
-
-# NVIDIA Assisted Mode
-
-Default model:
-
-```text
-qwen/qwen3.5-122b-a10b
-```
-
-Configure:
-
-```bash
-cp .env.example .env
-```
-
-Add:
-
-```text
-NVIDIA_API_KEY=<your-key>
-```
-
----
-
-# Autonomous Fallback Mode
-
-If no API key is available:
-
-```text
-LLM Requests = 0
-```
-
-YATA automatically switches to deterministic local engines.
-
-No functionality is lost.
-
----
-
-# Roadmap
-
-### Completed
-
-* SQL Injection
-* Hardcoded Secret Exposure
-* Command Injection
-* Path Traversal
-* Adversarial Validation
-* Repository Memory
-* Native CLI Installation
-* HTML Reporting
-* Multi Repository Assessment
-
-### Planned
-
-* Cross Site Scripting (XSS)
-* SSRF
-* Repository Discovery v2
-* GitHub Pull Request Automation
-* CI/CD Integration
-* Watch Mode
+## 🛠️ CLI Commands Reference
+
+YATA features a powerful, native CLI.
+
+| Command | Usage | Description |
+|---|---|---|
+| `assess` | `yata assess <path> --safe` | Run a full offensive assessment. Mode flags: `--safe` (Sandbox), `--apply` (Overwrite), `--interactive` (Prompt User). |
+| `discover` | `yata discover <path>` | Find all git repositories in a directory tree. |
+| `memory` | `yata memory <repo_name>` | View the persistent security knowledge YATA has learned about a repo. |
+| `history` | `yata history <repo_name>` | View a timeline of all past assessments. |
+| `report` | `yata report <repo_name>` | Open the latest HTML executive summary report. |
 
 ---
 
 # FAR AWAY 2026
 
-Submitted under:
-
-```text
-Agentic & Autonomous Systems
-```
-
-YATA's core principle:
+Submitted under: **Agentic & Autonomous Systems**
 
 > A security agent is only as trustworthy as its ability to defeat itself.
 
-Inspired by the Ouroboros, YATA attacks repositories, heals proven weaknesses, attacks its own remediations, and learns from every assessment.
-
-**Attack. Heal. Attack Again. Learn.**
-
----
-
-Built by Team Seasaw.
+**Built by Team Seasaw.**
