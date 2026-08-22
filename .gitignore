@@ -27,3 +27,8 @@ dist/
 juice-shop-master.zip
 temp_check.js
 patch3.py
+.*venv
+*.zip
+Dragon - Fully Animated
+juice-shop-master
+juice-shop-master/
