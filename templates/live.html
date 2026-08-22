@@ -358,17 +358,34 @@
         .decree-f.patched { background: #15803d; color: #fff; }
 
         /* Floating Toast */
-        .f-toast {
+                #toast-container {
             position: absolute;
-            font-size: 8px;
-            font-weight: bold;
+            bottom: 70%;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column; 
+            justify-content: flex-end;
+            align-items: center;
+            gap: 15px;
+            z-index: 300;
             pointer-events: none;
-            z-index: 200;
-            animation: f-rise 1.5s forwards;
-            text-shadow: 1px 1px 0 #000;
+            width: 600px;
+        }
+        .f-toast {
+            font-size: 18px;
+            font-weight: bold;
+            animation: f-rise 2.5s forwards;
+            text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+            text-align: center;
         }
         @keyframes f-rise {
-            0% { opacity: 0; transform: translateY(0) scale(0.8); }
+            0% { opacity: 0; transform: scale(0.5); }
+            10% { opacity: 1; transform: scale(1.2); }
+            20% { opacity: 1; transform: scale(1); }
+            80% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(0.8); }
+        }
             20% { opacity: 1; transform: translateY(-15px) scale(1.1); }
             80% { opacity: 1; transform: translateY(-35px) scale(1); }
             100% { opacity: 0; transform: translateY(-55px) scale(0.9); }
@@ -380,7 +397,7 @@
     <canvas id="game-canvas"></canvas>
 
     <!-- Top HUD -->
-    <div id="city-hud">
+    <div id="toast-container"></div><div id="city-hud">
         <div class="hud-left">
             <div class="guild-badge" onclick="openRoyalDecrees()" title="Click to open Guild Hall Dossier">
                 <img class="hud-icon" src="/raw_assets/ui/dcss_icons/books/gold.png">
@@ -451,6 +468,18 @@
                 <div style="text-align:center; color:#3e2723; font-size:10px; line-height:1.8; margin-top:40px; font-family: 'Press Start 2P', monospace;">
                     * All codebase AST vulnerabilities patched and validated *
                 </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Easter Egg Modal -->
+    <div id="egg-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.88); z-index:9999; justify-content:center; align-items:center;">
+        <div class="parchment-scroll" id="egg-scroll">
+            <div class="parchment-close" onclick="closeEggModal()">X</div>
+            <h2>Secret Message</h2>
+            <div id="egg-content-area" style="text-align:center; margin-top:50px; padding-bottom: 50px;">
+                <div style="font-family: 'Press Start 2P', monospace; font-size: 24px; color: #4e342e; text-transform: uppercase;">MADE BY TEAM SEASAW</div>
             </div>
         </div>
     </div>
@@ -591,15 +620,17 @@
 
         // New ASSets - Buildings
         loadImg('castle', '/raw_assets/castle.png');
+          loadImg('easter_egg', '/raw_assets/easter_egg.png');
         
         // Load Fully Animated Dragon (Optimized: every 5th frame)
         window.dragonAnims = {
-            idle: { frames: [], max: 140, step: 5 },
-            walk: { frames: [], max: 161, step: 5 }
-        };
-        ['idle', 'walk'].forEach(function(anim) {
-            const data = window.dragonAnims[anim];
-            const typeStr = anim === 'idle' ? 'Idle Battle' : 'Walking';
+              idle: { frames: [], max: 140, step: 5 },
+              walk: { frames: [], max: 161, step: 5 },
+              death: { frames: [], max: 301, step: 5 }
+          };
+          ['idle', 'walk', 'death'].forEach(function(anim) {
+              const data = window.dragonAnims[anim];
+              const typeStr = anim === 'idle' ? 'Idle Battle' : (anim === 'walk' ? 'Walking' : 'Death');
             for (let i = 1; i <= data.max; i += data.step) {
                 let num = String(i).padStart(3, '0');
                 let key = 'dragon_' + anim + '_' + num;
@@ -608,6 +639,8 @@
         });
         loadImg('house1', '/raw_assets/house1.png');
         loadImg('broken_house', '/raw_assets/broken_house.png');
+        loadImg('healing_aura', '/raw_assets/healing_aura.png');
+        loadImg('dust_explosion', '/raw_assets/dust_explosion.png');
         loadImg('shield_icon', '/raw_assets/ui/shield_blue.png');
         loadImg('watchtower', '/raw_assets/watchtower.png');
 
@@ -659,6 +692,14 @@
             const W = canvas.width;
             const H = canvas.height;
 
+            window.globalHousePositions = [
+                { x: 30, y: H * 0.28, label: 'Barracks' },
+                { x: 180, y: H * 0.33, label: 'Armory' },
+                { x: 80, y: H * 0.44, label: 'Workshop' },
+                { x: W - 130, y: H * 0.28, label: 'Library' },
+                { x: W - 280, y: H * 0.33, label: 'Treasury' },
+                { x: W - 180, y: H * 0.44, label: 'Infirmary' }
+            ];
             // Position defenders in the lower courtyard area
             const courtY = H * 0.62;
             defenders.hunter.x = W * 0.25; defenders.hunter.y = courtY;
@@ -712,6 +753,11 @@
             hoveredBuilding = null;
             canvas.style.cursor = 'default';
 
+            if (gameState.eggRect && e.clientX >= gameState.eggRect.x && e.clientX <= gameState.eggRect.x + gameState.eggRect.w && e.clientY >= gameState.eggRect.y && e.clientY <= gameState.eggRect.y + gameState.eggRect.h) {
+                canvas.style.cursor = 'pointer';
+                return;
+            }
+
             // Check Guild Hall (castle) - Matched to new 180x180 size
             const cw = 180, ch = 180;
             const cx = (W - cw) / 2;
@@ -723,13 +769,13 @@
             }
 
             // Check houses
-            var housePositions = [
-                { x: 30, y: H * 0.28, label: 'Barracks' },
-                { x: 180, y: H * 0.33, label: 'Armory' },
-                { x: 80, y: H * 0.44, label: 'Workshop' },
-                { x: W - 130, y: H * 0.28, label: 'Library' },
-                { x: W - 280, y: H * 0.33, label: 'Treasury' },
-                { x: W - 180, y: H * 0.44, label: 'Infirmary' }
+            var housePositions = window.globalHousePositions || [
+                { x: 30, y: window.innerHeight * 0.28, label: 'Barracks' },
+                { x: 180, y: window.innerHeight * 0.33, label: 'Armory' },
+                { x: 80, y: window.innerHeight * 0.44, label: 'Workshop' },
+                { x: window.innerWidth - 130, y: window.innerHeight * 0.28, label: 'Library' },
+                { x: window.innerWidth - 280, y: window.innerHeight * 0.33, label: 'Treasury' },
+                { x: window.innerWidth - 180, y: window.innerHeight * 0.44, label: 'Infirmary' }
             ];
             for (var i = 0; i < housePositions.length; i++) {
                 var hp = housePositions[i];
@@ -742,6 +788,10 @@
         });
 
         canvas.addEventListener('click', function(e) {
+            if (gameState.eggRect && e.clientX >= gameState.eggRect.x && e.clientX <= gameState.eggRect.x + gameState.eggRect.w && e.clientY >= gameState.eggRect.y && e.clientY <= gameState.eggRect.y + gameState.eggRect.h) {
+                openEggModal();
+                return;
+            }
             if (hoveredBuilding === 'castle') {
                 openRoyalDecrees();
             } else if (hoveredBuilding) {
@@ -754,10 +804,14 @@
             el.className = 'f-toast';
             el.innerText = text;
             el.style.color = color;
-            el.style.left = x + 'px';
-            el.style.top = y + 'px';
-            document.body.appendChild(el);
-            setTimeout(() => el.remove(), 1500);
+            document.getElementById('toast-container').appendChild(el);
+            setTimeout(() => {
+                el.style.transition = 'height 0.3s, margin 0.3s, opacity 0.3s';
+                el.style.height = '0px';
+                el.style.margin = '0px';
+                el.style.overflow = 'hidden';
+                setTimeout(() => el.remove(), 300);
+            }, 2500);
         }
 
         function dispatchRollingCart(vulnTitle) {
@@ -844,6 +898,19 @@
             document.getElementById('scroll-modal').style.display = 'flex';
         }
 
+        function openEggModal() {
+            document.getElementById('egg-modal').style.display = 'flex';
+        }
+
+        function closeEggModal() {
+            const scroll = document.getElementById('egg-scroll');
+            scroll.style.animation = 'rollup 0.5s cubic-bezier(0.8, 0.1, 1, 0.3) forwards';
+            setTimeout(function() {
+                document.getElementById('egg-modal').style.display = 'none';
+                scroll.style.animation = ''; // reset for next open
+            }, 450);
+        }
+
         function closeRoyalDecrees() {
             const scroll = document.querySelector('.parchment-scroll');
             scroll.style.animation = 'rollup 0.5s cubic-bezier(0.8, 0.1, 1, 0.3) forwards';
@@ -859,23 +926,28 @@
             const tInfo = monsterTierInfo[tier] || monsterTierInfo[4];
             
             // Set the active building for the attack
+            // Pick a random house
+            let targetHouse = window.globalHousePositions[Math.floor(Math.random() * window.globalHousePositions.length)];
             gameState.activeBuilding = {
-                x: window.innerWidth * 0.5, // Center of townhall
-                y: window.innerHeight * 0.45,
+                x: targetHouse.x + 50, // Center of house
+                y: targetHouse.y + 50,
                 state: 'broken', // 'normal', 'broken', 'healing', 'healed'
                 file: vulnData.file
             };
             
-            // Hunter attacks the building to confirm bug
+            // Hunter shoots from afar
+            defenders.hunter.dir = (gameState.activeBuilding.x > defenders.hunter.x) ? 1 : -1;
             defenders.hunter.animState = 'action';
             defenders.hunter.animFrame = 0;
             setTimeout(() => defenders.hunter.animState = 'idle', 800);
             
+                              // Projectiles are now auto-spawned in render loop based on state!
+            
             const monster = {
-                x: window.innerWidth * 0.5,
-                y: window.innerHeight * 0.45 - 60, // Spawn on top of the broken house
-                tx: window.innerWidth * 0.5,
-                ty: window.innerHeight * 0.45 - 60,
+                x: gameState.activeBuilding.x,
+                y: gameState.activeBuilding.y - 60, // Spawn on top of the broken house
+                tx: gameState.activeBuilding.x,
+                ty: gameState.activeBuilding.y - 60,
                 title: vulnData.vuln,
                 severity: vulnData.severity,
                 tier: tier,
@@ -925,7 +997,7 @@
                 if (false && targetMonster) {
                     // Disabled autonomous chasing to obey the guided workflow
                 } else {
-                    if (d.patrolState !== 'walking' && d.patrolState !== 'waiting') {
+                    if (d.patrolState !== 'walking' && d.patrolState !== 'waiting' && d.patrolState !== 'healing_walk' && d.patrolState !== 'validating_walk' && d.patrolState !== 'hunting_walk') {
                         d.patrolState = 'waiting';
                         d.waitTime = Math.random() * 2 + 1; // Wait 1 to 3 seconds
                     }
@@ -1009,9 +1081,11 @@
                     deliveryCart.x += (dx / dist) * 0.8;
                     deliveryCart.y += (dy / dist) * 0.8;
                 } else {
-                    deliveryCart.hasScroll = false;
-                    showFloatingText('SCROLL ARCHIVED IN GUILD HALL', '#fbbf24', deliveryCart.x, deliveryCart.y - 30);
-                    setTimeout(function() { deliveryCart.active = false; }, 1500);
+                    if (deliveryCart.hasScroll) {
+                        deliveryCart.hasScroll = false;
+                        showFloatingText('SCROLL ARCHIVED IN GUILD HALL', '#fbbf24', deliveryCart.x, deliveryCart.y - 30);
+                        setTimeout(function() { deliveryCart.active = false; }, 1500);
+                    }
                 }
             }
         }
@@ -1107,16 +1181,7 @@
             // 6. HOUSES (randomized facing, varied positions)
             const hImg = assetImages['house1'];
             if (hImg && hImg.complete && hImg.naturalWidth > 0) {
-                const housePositions = [
-                    // West district
-                    { x: 30, y: H * 0.28, flip: false, label: 'Barracks' },
-                    { x: 180, y: H * 0.33, flip: true, label: 'Armory' },
-                    { x: 80, y: H * 0.44, flip: false, label: 'Workshop' },
-                    // East district
-                    { x: W - 130, y: H * 0.28, flip: true, label: 'Library' },
-                    { x: W - 280, y: H * 0.33, flip: false, label: 'Treasury' },
-                    { x: W - 180, y: H * 0.44, flip: true, label: 'Infirmary' }
-                ];
+                const housePositions = window.globalHousePositions || [];
                 housePositions.forEach(function(hp) {
                     ctx.fillStyle = 'rgba(0,0,0,0.3)';
                     ctx.beginPath(); ctx.ellipse(hp.x + 50, hp.y + 95, 40, 12, 0, 0, Math.PI * 2); ctx.fill();
@@ -1179,6 +1244,57 @@
                 ctx.fillText('CLICK TO INSPECT', cx + cw/2, cy + ch + 16);
             }
 
+            // ACTIVE BUILDING DESTRUCTION & HEALING OVERLAYS
+            if (gameState.activeBuilding) {
+                const abX = gameState.activeBuilding.x - 50; // Center over the 100x100 house
+                const abY = gameState.activeBuilding.y - 50;
+                
+                if (gameState.activeBuilding.state === 'broken') {
+                    // Draw destruction dust explosion
+                    const dustImg = assetImages['dust_explosion'];
+                    if (dustImg && dustImg.complete && dustImg.naturalWidth > 0) {
+                        ctx.save();
+                        const s = 1 + Math.sin(Date.now() / 200) * 0.05;
+                        ctx.translate(abX + 50, abY + 50);
+                        ctx.scale(s, s);
+                        ctx.globalAlpha = 0.8;
+                        ctx.drawImage(dustImg, -80, -80, 160, 160);
+                        ctx.restore();
+                    }
+                    const brokenImg = assetImages['broken_house'];
+                    if (brokenImg && brokenImg.complete && brokenImg.naturalWidth > 0) {
+                        ctx.drawImage(brokenImg, abX, abY, 100, 100);
+                    }
+                } 
+                else if (gameState.activeBuilding.state === 'healing') {
+                    const healImg = assetImages['healing_aura'];
+                    if (healImg && healImg.complete && healImg.naturalWidth > 0) {
+                        ctx.save();
+                        const angle = (Date.now() / 1000) * Math.PI;
+                        const s = 1 + Math.sin(Date.now() / 150) * 0.1;
+                        ctx.translate(abX + 50, abY + 50);
+                        ctx.rotate(angle);
+                        ctx.scale(s, s);
+                        ctx.globalCompositeOperation = 'screen';
+                        ctx.globalAlpha = 0.9;
+                        ctx.drawImage(healImg, -80, -80, 160, 160);
+                        ctx.restore();
+                    }
+                }
+                else if (gameState.activeBuilding.state === 'healed') {
+                    const shieldImg = assetImages['shield_icon'];
+                    if (shieldImg && shieldImg.complete && shieldImg.naturalWidth > 0) {
+                        ctx.save();
+                        const s = 1 + Math.abs(Math.sin(Date.now() / 300)) * 0.5;
+                        ctx.translate(abX + 50, abY + 50);
+                        ctx.scale(s, s);
+                        ctx.globalAlpha = Math.max(0, 1 - Math.abs(Math.sin(Date.now() / 300)));
+                        ctx.drawImage(shieldImg, -30, -30, 60, 60);
+                        ctx.restore();
+                    }
+                }
+            }
+
             // 8. DCSS DECOR (fountains along the stone path, statues guard gates)
             // Fountains flanking the stone path
             drawImg(assetImages['fountain_sparkling'], W * 0.22, H * 0.50, 48, 48);
@@ -1231,6 +1347,117 @@
             ctx.textAlign = 'center';
             ctx.fillText('GEHENNA RIFT', px, py + 45);
 
+            // CONTINUOUS PROJECTILE SPAWNING
+            if (gameState.activeBuilding) {
+                // Determine facing direction
+                ['hunter', 'healer', 'validator'].forEach(agent => {
+                    defenders[agent].dir = (gameState.activeBuilding.x > defenders[agent].x) ? 1 : -1;
+                });
+
+                if (gameState.activeBuilding.state === 'broken') {
+                    if (!gameState.hunterProjectile || !gameState.hunterProjectile.active) {
+                        gameState.hunterProjectile = { active: true, x: defenders.hunter.x, y: defenders.hunter.y - 10, tx: gameState.activeBuilding.x, ty: gameState.activeBuilding.y, progress: 0 };
+                        defenders.hunter.animState = 'action'; defenders.hunter.animFrame = 0;
+                        setTimeout(() => { if(defenders.hunter.animState === 'action') defenders.hunter.animState = 'idle'; }, 300);
+                    }
+                }
+                else if (gameState.activeBuilding.state === 'healing') {
+                    if (!gameState.spellProjectile || !gameState.spellProjectile.active) {
+                        gameState.spellProjectile = { active: true, x: defenders.healer.x, y: defenders.healer.y - 20, tx: gameState.activeBuilding.x, ty: gameState.activeBuilding.y, progress: 0 };
+                        defenders.healer.animState = 'action'; defenders.healer.animFrame = 0;
+                        setTimeout(() => { if(defenders.healer.animState === 'action') defenders.healer.animState = 'idle'; }, 300);
+                    }
+                }
+                else if (gameState.activeBuilding.state === 'healed') {
+                    if (!gameState.shieldProjectile || !gameState.shieldProjectile.active) {
+                        gameState.shieldProjectile = { active: true, x: defenders.validator.x, y: defenders.validator.y - 10, tx: gameState.activeBuilding.x, ty: gameState.activeBuilding.y, progress: 0 };
+                        defenders.validator.animState = 'action'; defenders.validator.animFrame = 0;
+                        setTimeout(() => { if(defenders.validator.animState === 'action') defenders.validator.animState = 'idle'; }, 300);
+                    }
+                }
+            }
+
+            // 10.5 SPELL PROJECTILE
+            if (gameState.spellProjectile && gameState.spellProjectile.active) {
+                const sp = gameState.spellProjectile;
+                sp.progress += 0.015; // Speed of projectile (about 1 second to reach)
+                if (sp.progress >= 1.0) {
+                    sp.progress = 1.0;
+                    sp.active = false;
+
+                }
+                
+                const curX = sp.x + (sp.tx - sp.x) * sp.progress;
+                const curY = sp.y + (sp.ty - sp.y) * sp.progress;
+                const healImg = assetImages['healing_aura'];
+                if (healImg && healImg.complete && healImg.naturalWidth > 0) {
+                    ctx.save();
+                    const angle = (Date.now() / 500) * Math.PI; // Fast spin while traveling
+                    const s = 0.2 + (sp.progress * 0.8); // Starts small (0.2), grows to 1.0
+                    ctx.translate(curX + 50, curY + 50);
+                    ctx.rotate(angle);
+                    ctx.scale(s, s);
+                    ctx.globalCompositeOperation = 'screen';
+                    ctx.globalAlpha = 0.9;
+                    ctx.drawImage(healImg, -80, -80, 160, 160);
+                    ctx.restore();
+                }
+            }
+
+            // HUNTER ARROW PROJECTILE
+            if (gameState.hunterProjectile && gameState.hunterProjectile.active) {
+                const sp = gameState.hunterProjectile;
+                sp.progress += 0.03; // Faster projectile
+                if (sp.progress >= 1.0) {
+                    sp.progress = 1.0;
+                    sp.active = false;
+                }
+                const curX = sp.x + (sp.tx - sp.x) * sp.progress;
+                const curY = sp.y + (sp.ty - sp.y) * sp.progress;
+                
+                ctx.save();
+                ctx.translate(curX + 50, curY + 50);
+                const angle = Math.atan2(sp.ty - sp.y, sp.tx - sp.x);
+                ctx.rotate(angle);
+                // Draw a simple glowing yellow arrow line
+                ctx.beginPath();
+                ctx.moveTo(-10, 0);
+                ctx.lineTo(10, 0);
+                ctx.moveTo(5, -5);
+                ctx.lineTo(10, 0);
+                ctx.lineTo(5, 5);
+                ctx.strokeStyle = '#fef08a'; // Bright yellow
+                ctx.lineWidth = 3;
+                ctx.shadowColor = '#fef08a';
+                ctx.shadowBlur = 10;
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            // VALIDATOR SHIELD PROJECTILE
+            if (gameState.shieldProjectile && gameState.shieldProjectile.active) {
+                const sp = gameState.shieldProjectile;
+                sp.progress += 0.02; // Medium speed
+                if (sp.progress >= 1.0) {
+                    sp.progress = 1.0;
+                    sp.active = false;
+
+                }
+                const curX = sp.x + (sp.tx - sp.x) * sp.progress;
+                const curY = sp.y + (sp.ty - sp.y) * sp.progress;
+                const shieldImg = assetImages['shield_icon'];
+                if (shieldImg && shieldImg.complete && shieldImg.naturalWidth > 0) {
+                    ctx.save();
+                    const angle = (Date.now() / 200) * Math.PI; // Spin wildly like Captain America
+                    const s = 0.2 + (sp.progress * 0.8);
+                    ctx.translate(curX + 50, curY + 50);
+                    ctx.rotate(angle);
+                    ctx.scale(s, s);
+                    ctx.drawImage(shieldImg, -30, -30, 60, 60);
+                    ctx.restore();
+                }
+            }
+
             // 11. MONSTERS
             gameState.monsters.forEach(function(m) {
                 if (m.defeated) return;
@@ -1238,16 +1465,40 @@
                 ctx.save();
                 ctx.translate(m.x, m.y);
                 
+                // Threat Spawn Glow
+                ctx.shadowColor = '#ef4444';
+                ctx.shadowBlur = 30 + Math.sin(Date.now() / 150) * 20;
+                ctx.fillStyle = 'rgba(239, 68, 68, 0.4)';
+                ctx.beginPath();
+                ctx.ellipse(0, 10, 60, 20, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+
                 // Use animated dragon for all monsters to fit the theme for now!
                 const dx = Math.abs(m.x - m.tx);
                 const dy = Math.abs(m.y - m.ty);
                 const isWalking = (dx > 2 || dy > 2);
-                const animState = isWalking ? 'walk' : 'idle';
+                
+                let animState = 'idle';
+                let fIdx = 0;
+                
+                if (m.dying) {
+                    animState = 'death';
+                    m.deathTick = (m.deathTick || 0) + 1;
+                    fIdx = Math.floor(m.deathTick / 2); // Play death animation faster! (30fps instead of 15fps)
+                    const maxIdx = window.dragonAnims['death'].frames.length - 1;
+                    if (fIdx > maxIdx) fIdx = maxIdx; // Stay dead on the last frame
+                } else if (isWalking) {
+                    animState = 'walk';
+                    fIdx = Math.floor(animTick / 4) % window.dragonAnims['walk'].frames.length;
+                } else {
+                    fIdx = Math.floor(animTick / 4) % window.dragonAnims['idle'].frames.length;
+                }
+                
                 const data = window.dragonAnims ? window.dragonAnims[animState] : null;
                 
                 let drawn = false;
                 if (data && data.frames.length > 0) {
-                    let fIdx = Math.floor(animTick / 4) % data.frames.length;
                     let frmImg = data.frames[fIdx];
                     if (frmImg && frmImg.complete && frmImg.naturalWidth > 0) {
                         // Original size ~725x445. Scale down to ~180x110
@@ -1343,6 +1594,14 @@
                 ctx.textAlign = 'center';
                 ctx.fillText(d.name, d.x, d.y - 72);
             });
+
+            // EASTER EGG
+            const eggImg = assetImages['easter_egg'];
+            if (eggImg && eggImg.complete && eggImg.naturalWidth > 0) {
+                // Lower left tile, safely above lava
+                gameState.eggRect = { x: 40, y: canvas.height - 120, w: 60, h: 60 };
+                ctx.drawImage(eggImg, gameState.eggRect.x, gameState.eggRect.y, gameState.eggRect.w, gameState.eggRect.h);
+            }
         }
 
         function renderRadar() {
@@ -1392,28 +1651,22 @@
                     break;
                 case 'agent_action':
                     logTelemetry(d.agent, d.message);
-                    if (d.agent === 'healer') {
-                        // Healer walks to the broken house and starts healing
-                        if (gameState.activeBuilding) {
-                            defenders.healer.targetX = gameState.activeBuilding.x - 60;
-                            defenders.healer.targetY = gameState.activeBuilding.y + 40;
-                            defenders.healer.patrolState = 'healing_walk';
+                    if (gameState.activeBuilding) {
+                        if (d.agent === 'hunter') {
+                            // Hunter confirms finding -> dragon dies!
+                            gameState.monsters.forEach(m => {
+                                if (!m.dying) {
+                                    m.dying = true;
+                                    m.deathTick = 0;
+                                }
+                            });
+                        }
+                        if (d.agent === 'healer') {
                             gameState.activeBuilding.state = 'healing';
                         }
-                    }
-                    if (d.agent === 'validator') {
-                        // Validator walks to the house to test patch
-                        if (gameState.activeBuilding) {
-                            defenders.validator.targetX = gameState.activeBuilding.x + 60;
-                            defenders.validator.targetY = gameState.activeBuilding.y + 40;
-                            defenders.validator.patrolState = 'validating_walk';
+                        if (d.agent === 'validator') {
                             gameState.activeBuilding.state = 'healed';
                         }
-                    }
-                    if (d.agent && defenders[d.agent]) {
-                        defenders[d.agent].animState = 'action';
-                        defenders[d.agent].animFrame = 0;
-                        setTimeout(function() { defenders[d.agent].animState = 'idle'; }, 1200);
                     }
                     break;
                 case 'monster_defeated':
@@ -1426,6 +1679,17 @@
                         showFloatingText(d.vuln + ' PURGED & FORTIFIED!', '#22c55e', m.x, m.y - 40);
                         setTimeout(function() { gameState.monsters = gameState.monsters.filter(function(x) { return x !== m; }); }, 1200);
                     }
+                    if (gameState.activeBuilding) {
+                        setTimeout(() => {
+                            gameState.activeBuilding.state = 'normal'; // Reset to clean house
+                        }, 2000);
+                    }
+                    // Characters return to patrol base
+                    ['hunter', 'healer', 'validator'].forEach(agent => {
+                        defenders[agent].patrolState = 'walking';
+                        defenders[agent].targetX = defenders[agent].baseX;
+                        defenders[agent].targetY = defenders[agent].baseY;
+                    });
                     break;
             }
         };

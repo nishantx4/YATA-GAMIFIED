@@ -76,8 +76,13 @@ def emit(event_type, data=None):
 def _run_server():
     app.run(host='127.0.0.1', port=5050, use_reloader=False, debug=False)
 
+_server_thread = None
+
 def start_dashboard():
     """Starts the Flask server in a background daemon thread"""
-    t = threading.Thread(target=_run_server, daemon=True)
-    t.start()
-    return t
+    global _server_thread
+    if _server_thread is not None:
+        return _server_thread
+    _server_thread = threading.Thread(target=_run_server, daemon=True)
+    _server_thread.start()
+    return _server_thread

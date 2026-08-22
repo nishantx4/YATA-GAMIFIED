@@ -415,6 +415,7 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     mode_group.add_argument("--safe", action="store_true", help="Patch and verify on safe copies only")
     mode_group.add_argument("--apply", action="store_true", help="Apply verified patches automatically")
     mode_group.add_argument("--interactive", action="store_true", help="User approves each patch")
+    mode_group.add_argument("--loop", action="store_true", help="Endless gamification loop (implies safe)")
     
     assess_parser.add_argument(
         "--max-rounds",
@@ -455,7 +456,11 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     args = parser.parse_args(raw_args)
 
     if args.command in ("assess", "scan"):
-        if getattr(args, "apply", False):
+        if getattr(args, "loop", False):
+            args.mode = "safe"
+            import os
+            os.environ["YATA_DEMO_ENDLESS"] = "1"
+        elif getattr(args, "apply", False):
             args.mode = "apply"
         elif getattr(args, "interactive", False):
             args.mode = "interactive"
@@ -1373,7 +1378,13 @@ def _print_suite_summary(summaries: list[RepositoryRunSummary]) -> None:
             str(summary.security_score),
         )
 
-    console.print(table)
+    if os.environ.get("YATA_DEMO_ENDLESS") == "1":
+        while True:
+            dispatch_command(args)
+            import time
+            time.sleep(5)
+    else:
+        return dispatch_command(args)
 
 
 if __name__ == "__main__":
