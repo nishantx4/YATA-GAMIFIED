@@ -35,20 +35,25 @@ def handle_action():
             import pythoncom
             import pygetwindow as gw
             import time
-            pythoncom.CoInitialize()
-            shell = win32com.client.Dispatch("WScript.Shell")
-            activated = False
-            for w in gw.getWindowsWithTitle(''):
-                title = w.title.lower()
-                if any(x in title for x in ['pwsh', 'powershell', 'cmd', 'yata', 'epic_vulnerable_app']):
-                    if w.visible:
-                        if shell.AppActivate(w.title):
-                            time.sleep(0.1)
-                            shell.SendKeys("{ENTER}")
-                            activated = True
+            import keyboard
+            import threading
+
+            def blast_enters():
+                pythoncom.CoInitialize()
+                shell = win32com.client.Dispatch("WScript.Shell")
+                for w in gw.getWindowsWithTitle(''):
+                    title = w.title.lower()
+                    if any(x in title for x in ['pwsh', 'powershell', 'cmd', 'yata', 'epic_vulnerable_app']):
+                        if w.visible:
+                            if shell.AppActivate(w.title):
+                                # Send Enter 4 times to blast through the entire 4-step workflow
+                                for _ in range(4):
+                                    time.sleep(0.5)
+                                    keyboard.send('enter')
                             break
-            if not activated:
-                print("Could not find terminal window to activate.")
+
+            threading.Thread(target=blast_enters).start()
+
         except Exception as e:
             print("Injection failed:", e)
     return jsonify({'status': 'ok'})
