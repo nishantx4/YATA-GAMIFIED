@@ -31,20 +31,22 @@ def handle_action():
     action = request.json.get('action')
     if action == 'continue':
         try:
-            import win32console
-            import win32con
-            stdin = win32console.GetStdHandle(win32console.STD_INPUT_HANDLE)
-            r1 = win32console.PyINPUT_RECORDType(win32console.KEY_EVENT)
-            r1.KeyDown = True
-            r1.RepeatCount = 1
-            r1.VirtualKeyCode = win32con.VK_RETURN
-            r1.Char = '\r'
-            r2 = win32console.PyINPUT_RECORDType(win32console.KEY_EVENT)
-            r2.KeyDown = False
-            r2.RepeatCount = 1
-            r2.VirtualKeyCode = win32con.VK_RETURN
-            r2.Char = '\r'
-            stdin.WriteConsoleInput([r1, r2])
+            import win32com.client
+            import pygetwindow as gw
+            import time
+            shell = win32com.client.Dispatch("WScript.Shell")
+            activated = False
+            for w in gw.getWindowsWithTitle(''):
+                title = w.title.lower()
+                if any(x in title for x in ['pwsh', 'powershell', 'cmd', 'yata', 'epic_vulnerable_app']):
+                    if w.visible:
+                        if shell.AppActivate(w.title):
+                            time.sleep(0.1)
+                            shell.SendKeys("{ENTER}")
+                            activated = True
+                            break
+            if not activated:
+                print("Could not find terminal window to activate.")
         except Exception as e:
             print("Injection failed:", e)
     return jsonify({'status': 'ok'})
