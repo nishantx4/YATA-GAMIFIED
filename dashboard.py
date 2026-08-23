@@ -2,7 +2,7 @@ import json
 import queue
 import threading
 import logging
-from flask import Flask, render_template, Response, send_from_directory
+from flask import Flask, render_template, Response, send_from_directory, request, jsonify
 from pathlib import Path
 
 # Disable Flask startup logs
