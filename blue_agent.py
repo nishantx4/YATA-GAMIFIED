@@ -232,8 +232,13 @@ class CommandInjectionPatchStrategy(PatchStrategy):
             else:
                 lines[execute_line - 1 : end_execute_line] = [f"{indent}subprocess.run([{args_str}], shell=False)"]
         elif func_name in ("os.popen", "popen"):
-            # stream = subprocess.Popen(["ping", host], shell=False, stdout=subprocess.PIPE, text=True)
-            lines[execute_line - 1 : end_execute_line] = [f"{indent}import subprocess; stream = subprocess.Popen([{args_str}], shell=False, stdout=subprocess.PIPE, text=True)"]
+            new_call_src = f"subprocess.Popen([{args_str}], shell=False, stdout=subprocess.PIPE, text=True).stdout"
+            segment = "\n".join(lines[execute_line - 1 : end_execute_line])
+            if call_src in segment:
+                new_segment = segment.replace(call_src, new_call_src, 1)
+            else:
+                new_segment = f"{indent}{new_call_src}"
+            lines[execute_line - 1 : end_execute_line] = new_segment.splitlines()
         else:
             # os.system(cmd) -> subprocess.run(["ping", host], shell=False)
             lines[execute_line - 1 : end_execute_line] = [f"{indent}subprocess.run([{args_str}], shell=False)"]
