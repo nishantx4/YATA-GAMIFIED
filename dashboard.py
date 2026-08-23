@@ -31,15 +31,22 @@ def handle_action():
     action = request.json.get('action')
     if action == 'continue':
         try:
-            import pygetwindow as gw
-            for w in gw.getWindowsWithTitle(''):
-                if 'pwsh' in w.title.lower() or 'powershell' in w.title.lower() or 'cmd' in w.title.lower() or 'yata' in w.title.lower() or 'window' in w.title.lower() or 'epic_vulnerable_app' in w.title.lower() or 'hackathon' in w.title.lower():
-                    if w.visible:
-                        w.activate()
-                        break
+            import win32console
+            import win32con
+            stdin = win32console.GetStdHandle(win32console.STD_INPUT_HANDLE)
+            r1 = win32console.PyINPUT_RECORDType(win32console.KEY_EVENT)
+            r1.KeyDown = True
+            r1.RepeatCount = 1
+            r1.VirtualKeyCode = win32con.VK_RETURN
+            r1.Char = '\r'
+            r2 = win32console.PyINPUT_RECORDType(win32console.KEY_EVENT)
+            r2.KeyDown = False
+            r2.RepeatCount = 1
+            r2.VirtualKeyCode = win32con.VK_RETURN
+            r2.Char = '\r'
+            stdin.WriteConsoleInput([r1, r2])
         except Exception as e:
-            print('Focus failed:', e)
-        keyboard.send('enter')
+            print("Injection failed:", e)
     return jsonify({'status': 'ok'})
 
 @app.route('/')
