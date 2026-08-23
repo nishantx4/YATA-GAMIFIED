@@ -32,8 +32,10 @@ def handle_action():
     if action == 'continue':
         try:
             import win32com.client
+            import pythoncom
             import pygetwindow as gw
             import time
+            pythoncom.CoInitialize()
             shell = win32com.client.Dispatch("WScript.Shell")
             activated = False
             for w in gw.getWindowsWithTitle(''):
